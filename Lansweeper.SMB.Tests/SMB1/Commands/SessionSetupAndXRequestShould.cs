@@ -1,0 +1,110 @@
+using Lansweeper.Smb.SMB1.Commands;
+using Lansweeper.Smb.SMB1.Enums;
+using System.Text;
+
+namespace Lansweeper.SMB.Tests.SMB1.Commands;
+
+/// <remarks>
+/// The byte arrays here are constructed manually based on the specification. No example packet captures were found so far.
+/// </remarks>
+public class SessionSetupAndXRequestShould
+{
+    [Test]
+    public void ConstructPropertiesCorrectlyFromBuffer()
+    {
+        // Arrange
+        byte[] buffer = [
+            0x0d, // Word Count
+            0xff, // AndXCommand
+            0x00, // Reserved
+            0x00, 0x00, // AndXOffset
+            0xff, 0xff, // MaxBufferSize
+            0x02, 0x00, // MaxMpxCount
+            0x01, 0x00, // VcNumber
+            0x00, 0x00, 0x00, 0x00, // SessionKey
+            0x00, 0x00, // OEMPasswordLength
+            0x1e, 0x00, // UnicodePasswordLength
+            0x00, 0x00, 0x00, 0x00, // Reserved
+            0x54, 0x00, 0x00, 0x00, // Capabilities
+            0x5b, 0x00, // ByteCount
+            // OEMPassword
+            0x55, 0x00, 0x4E, 0x00, 0x49, 0x00, 0x43, 0x00, 0x4F, 0x00, 0x44, 0x00, 0x45, 0x00, 0x50, 0x00, 0x41, 0x00, 0x53, 0x00, 0x53, 0x00, 0x57, 0x00, 0x4F, 0x00, 0x52, 0x00, 0x44, 0x00,// UnicodePassword
+            0x00, // Pad
+            0x41, 0x00, 0x43, 0x00, 0x43, 0x00, 0x4F, 0x00, 0x55, 0x00, 0x4E, 0x00, 0x54, 0x00, 0x4E, 0x00, 0x41, 0x00, 0x4D, 0x00, 0x45, 0x00, 0x00, 0x00,// AccountName
+            0x4d, 0x00, 0x53, 0x00, 0x48, 0x00, 0x4f, 0x00, 0x4d, 0x00, 0x45, 0x00, 0x00, 0x00, // PrimaryDomain
+            0x55, 0x00, 0x6e, 0x00, 0x69, 0x00, 0x78, 0x00, 0x00, 0x00, // Native OS
+            0x53, 0x00, 0x61, 0x00, 0x6d, 0x00, 0x62, 0x00, 0x61, 0x00, 0x00, 0x00 //Native LAN Manager
+        ];
+
+
+        // Act
+        var sut = new SessionSetupAndXRequest(buffer, true);
+
+        // Assert
+        sut.AndXCommand.Should().Be(CommandName.SMB_COM_NO_ANDX_COMMAND);
+        sut.AndXReserved.Should().Be(0);
+        sut.AndXOffset.Should().Be(0);
+        sut.MaxBufferSize.Should().Be(65535);
+        sut.MaxMpxCount.Should().Be(2);
+        sut.VcNumber.Should().Be(1);
+        sut.SessionKey.Should().Be(0x00000000);
+        sut.Reserved.Should().Be(0);
+        sut.Capabilities.Should().Be(Capabilities.Unicode | Capabilities.NTSMB | Capabilities.NTStatusCode);
+        sut.OEMPassword.Should().BeEmpty();
+        sut.UnicodePassword.Should().Equal(Encoding.Unicode.GetBytes("UNICODEPASSWORD"));
+        sut.AccountName.Should().Be("ACCOUNTNAME");
+        sut.PrimaryDomain.Should().Be("MSHOME");
+        sut.NativeOS.Should().Be("Unix");
+        sut.NativeLanMan.Should().Be("Samba");
+    }
+
+    [Test]
+    public void GetBytesCorrectly()
+    {
+        // Arrange
+        SessionSetupAndXRequest request = new()
+        {
+            AndXCommand = CommandName.SMB_COM_NO_ANDX_COMMAND,
+            AndXOffset = 0,
+            MaxBufferSize = 65535,
+            MaxMpxCount = 2,
+            VcNumber = 1,
+            SessionKey = 0x00000000,
+            Capabilities = Capabilities.Unicode | Capabilities.NTSMB | Capabilities.NTStatusCode,
+            UnicodePassword = Encoding.Unicode.GetBytes("UNICODEPASSWORD"),
+            AccountName = "ACCOUNTNAME",
+            PrimaryDomain = "MSHOME",
+            NativeOS = "Unix",
+            NativeLanMan = "Samba",
+        };
+
+        byte[] expectedBytes = [
+            0x0d, // Word Count
+            0xff, // AndXCommand
+            0x00, // Reserved
+            0x00, 0x00, // AndXOffset
+            0xff, 0xff, // MaxBufferSize
+            0x02, 0x00, // MaxMpxCount
+            0x01, 0x00, // VcNumber
+            0x00, 0x00, 0x00, 0x00, // SessionKey
+            0x00, 0x00, // OEMPasswordLength
+            0x1e, 0x00, // UnicodePasswordLength
+            0x00, 0x00, 0x00, 0x00, // Reserved
+            0x54, 0x00, 0x00, 0x00, // Capabilities
+            0x5b, 0x00, // ByteCount
+            // OEMPassword
+            0x55, 0x00, 0x4E, 0x00, 0x49, 0x00, 0x43, 0x00, 0x4F, 0x00, 0x44, 0x00, 0x45, 0x00, 0x50, 0x00, 0x41, 0x00, 0x53, 0x00, 0x53, 0x00, 0x57, 0x00, 0x4F, 0x00, 0x52, 0x00, 0x44, 0x00,// UnicodePassword
+            0x00, // Pad
+            0x41, 0x00, 0x43, 0x00, 0x43, 0x00, 0x4F, 0x00, 0x55, 0x00, 0x4E, 0x00, 0x54, 0x00, 0x4E, 0x00, 0x41, 0x00, 0x4D, 0x00, 0x45, 0x00, 0x00, 0x00,// AccountName
+            0x4d, 0x00, 0x53, 0x00, 0x48, 0x00, 0x4f, 0x00, 0x4d, 0x00, 0x45, 0x00, 0x00, 0x00, // PrimaryDomain
+            0x55, 0x00, 0x6e, 0x00, 0x69, 0x00, 0x78, 0x00, 0x00, 0x00, // Native OS
+            0x53, 0x00, 0x61, 0x00, 0x6d, 0x00, 0x62, 0x00, 0x61, 0x00, 0x00, 0x00 //Native LAN Manager
+        ];
+
+        // Act
+        var resultBytes = request.GetBytes(true);
+
+        // Assert
+        resultBytes.Should().Equal(expectedBytes);
+    }
+}
